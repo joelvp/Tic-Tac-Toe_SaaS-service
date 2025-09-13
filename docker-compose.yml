@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:15
+    container_name: tictactoe_db
+    environment:
+      POSTGRES_USER: ttt_user
+      POSTGRES_PASSWORD: ttt_pass
+      POSTGRES_DB: ttt_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: tictactoe_web
+    ports:
+      - "8000:8000"
+    environment:
+      DB_USER: ttt_user
+      DB_PASSWORD: ttt_pass
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ttt_db
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
