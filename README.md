@@ -35,6 +35,38 @@ The project follows **Domain-Driven Design (DDD)** principles, **Hexagonal Archi
 5. Clean, modular code following **Clean Architecture** principles.  
 6. Logging and thorough tests to ensure observability and reliability.
 
+## ⚙️ Database Configuration
+
+This project uses **PostgreSQL running inside a Docker container**.  
+The database is initialized automatically when you run `docker-compose up`.  
+
+There are **two sets of environment variables** to understand:
+
+| Variable | Purpose |
+|----------|---------|
+| `POSTGRES_USER` | Username **created inside the PostgreSQL container** at initialization. |
+| `POSTGRES_PASSWORD` | Password for the PostgreSQL user. Only used when the container is first created. |
+| `POSTGRES_DB` | Database created inside the container at startup. |
+| `DB_USER` | Username your **application** uses to connect to the database. |
+| `DB_PASSWORD` | Password your application uses to connect. |
+| `DB_NAME` | Database your application connects to. |
+| `DB_HOST` | Hostname of the database (in Docker Compose, this is usually `db`). |
+| `DB_PORT` | Port your application connects to (default: 5432). |
+
+### How it works
+
+1. **Container initialization**  
+   When PostgreSQL starts for the first time, it reads `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` and creates the database and user.  
+   After that, these variables are **not used again** unless the container is destroyed and recreated.
+
+2. **Application connection**  
+   Your FastAPI app uses `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_HOST`, and `DB_PORT` to connect to the database.  
+   These values **must match an existing database and user** in PostgreSQL. Typically, for local development, you can use the same values as `POSTGRES_*`.
+
+3. **Changing values**  
+   - Changing `POSTGRES_*` after the database is created has **no effect** on the existing database.  
+   - Changing `DB_*` will make your app try to connect with different credentials. If the user or database does not exist, the connection will fail.
+
 ## 🔧 Environment Variables
 
 This project requires an `.env` file with configuration details for the application and database.  
@@ -56,6 +88,10 @@ DB_PASSWORD=ttt_pass
 DB_HOST=db
 DB_PORT=5432
 DB_NAME=ttt_db
+
+POSTGRES_USER=ttt_user
+POSTGRES_PASSWORD=ttt_pass
+POSTGRES_DB=ttt_db
 ```
 
 3. When using Docker Compose, the .env file will be automatically loaded.
