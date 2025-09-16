@@ -1,0 +1,12 @@
+[run]
+source = src
+omit =
+    */__init__.py
+    src/infrastructure/db/session.py
+    src/infrastructure/api/dependencies.py
+    src/main.py
+    src/domain/repositories/game_repository.py
+
+[report]
+show_missing = True
+fail_under = 80

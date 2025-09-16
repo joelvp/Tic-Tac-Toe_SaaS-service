@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from src.infrastructure.db.postgres import engine
+from src.infrastructure.db.session import get_engine
 from src.infrastructure.db.models import Base
 from src.infrastructure.api.routers.game_router import router as game_router
 from src.infrastructure.logging.logger import logger
@@ -9,7 +9,7 @@ app = FastAPI(title="Tic-Tac-Toe API")
 @app.on_event("startup")
 def startup():
     try:
-        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=get_engine())
         logger.info("Database tables created successfully.")
     except Exception as e:
         logger.exception("Failed to initialize database tables: %s", e)
