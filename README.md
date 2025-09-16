@@ -35,11 +35,6 @@ The project follows **Domain-Driven Design (DDD)** principles, **Hexagonal Archi
 5. Clean, modular code following **Clean Architecture** principles.  
 6. Logging and thorough tests to ensure observability and reliability.
 
----
-
-
-> ⚠️ **Important**: Make sure **Docker is running** before starting the application or running tests, as some services (like the database in integration tests) depend on containers.
-
 ## 🔧 Environment Variables
 
 This project requires an `.env` file with configuration details for the application and database.  
@@ -68,6 +63,8 @@ You can also access these environment variables in your local setup without Dock
 
 
 ## 🚀 Deployment and Execution
+
+> ⚠️ **Important**: Make sure **Docker is running** before starting the application or running tests, as some services (like the database in integration tests) depend on containers.
 
 ### Locally with Python
 
@@ -120,3 +117,107 @@ coverage run -m pytest
 ```bash
 coverage html
 ```
+
+## Future Improvements – User Management
+
+### 1️⃣ Feature Overview – Users
+
+**Goal:** Introduce a **User** concept to the service to manage player identities.  
+**Assumptions:**  
+- Minimal authentication with `username` + `password`.  
+- Each user can create matches and track their own games.  
+- Players are linked to a `User` entity rather than anonymous identifiers.
+
+**Features:**
+- User registration and optional profile info (email, display name).  
+- User login / authentication (basic).  
+- Assigning matches to users.  
+- Querying match history per user.
+
+### 2️⃣ API Changes
+
+**Existing endpoints** remain, but must now include `userId` to identify players.
+
+#### New Endpoints:
+
+1. **POST /users/register**  
+   - Registers a new user.  
+   - Payload:
+   ```json
+   {
+     "username": "player1",
+     "password": "secret123",
+     "email": "player1@example.com"  // optional
+   }
+   ```
+
+   - Response:
+   ```json
+    {
+    "userId": "uuid",
+    "username": "player1",
+    "email": "player1@example.com"
+    }
+   ```
+
+2. **POST /users/login**
+   - Authenticates a user.  
+   - Payload:
+   ```json
+   {
+     "username": "player1",
+     "password": "secret123"
+   }
+   ```
+
+   - Response:
+   ```json
+    {
+    "userId": "uuid",
+    "authToken": "token123"
+    }
+   ```
+
+3. **GET /users/{userId}/matches**
+    - Returns the list of matches associated with the user.
+
+#### **Updated Endpoints:**
+- **POST /create** → now accepts `userId` of the creator.
+- **POST /move** → validated against `userId` to ensure correct player moves.
+- **GET /status** → optionally include player information.
+
+### 3️⃣ Database Structure
+
+#### **Users Table:**
+
+| Column      | Type       | Notes                  |
+|------------|-----------|-----------------------|
+| id         | UUID      | Primary key           |
+| username   | VARCHAR   | Unique                |
+| password   | VARCHAR   | Hashed                |
+| email      | VARCHAR   | Optional              |
+| created_at | TIMESTAMP | Default now()         |
+
+#### **Games Table:**
+
+
+| Column       | Type       | Notes                                           |
+|-------------|-----------|-----------------------------------------------|
+| id          | UUID      | Primary key                                   |
+| player_x_id | UUID      | FK → users.id                                 |
+| player_o_id | UUID      | FK → users.id                                 |
+| board       | JSON      | Current state of the board (3x3 list)         |
+| next_player | VARCHAR   | "X" or "O", None if game finished             |
+| winner      | VARCHAR   | "X", "O" or None                              |
+| is_finished | BOOLEAN   | True or False                                |
+| created_at  | TIMESTAMP | Default now()                                 |
+
+### 4️⃣ Architectural Design Notes
+
+- Introduce a **UserRepository** following **DDD** and **Hexagonal Architecture** principles to handle user-related operations.  
+- Minimal authentication is stored in the **infrastructure layer**, separate from business logic.  
+- The **Match service** now references `userId` instead of anonymous marks.  
+- The service **remains stateless**, no major infrastructure changes required for this step.  
+- Logging and observability extend naturally to user actions (e.g., user registration, login, match creation).  
+- This design allows **future horizontal scalability**, enabling multiple instances of the service to run concurrently.  
+- All proposed changes are backward-compatible with existing games and gameplay logic.  
