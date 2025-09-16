@@ -8,7 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código fuente
 COPY src/ ./src
-COPY .env .env
 
 # Inicializar tablas al arrancar y luego levantar FastAPI
 ENV PYTHONPATH=/app/src
