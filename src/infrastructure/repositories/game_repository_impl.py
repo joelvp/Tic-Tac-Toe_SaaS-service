@@ -8,13 +8,15 @@ from src.infrastructure.logging.logger import logger
 
 
 class GameRepositoryImpl(GameRepository):
+    """Concrete implementation of GameRepository using SQLAlchemy."""
+
     def __init__(self, db_session: Session):
         self.db = db_session
 
     def add(self, game: Game) -> None:
         """
-        Inserts or updates a game in the database.
-        Does not commit: the calling service should handle the transaction.
+        Insert or update a game in the database.
+        Transaction commit is handled by the calling service.
         """
         try:
             db_game = self._to_db_model(game)
@@ -26,23 +28,26 @@ class GameRepositoryImpl(GameRepository):
 
     def get(self, game_id: str) -> Optional[Game]:
         """
-        Retrieves a game from the database and converts it into a domain entity.
+        Retrieve a game from the database and convert it into a domain entity.
+        Returns None if the game is not found.
         """
         try:
             db_game = self.db.query(GameModel).filter(GameModel.game_id == game_id).first()
             if not db_game:
                 logger.warning(f"Game {game_id} not found in database.")
                 return None
+
             game = self._from_db_model(db_game)
             logger.info(f"Game {game_id} retrieved from database.")
             return game
+
         except Exception as e:
             logger.error(f"Error retrieving game {game_id}: {e}", exc_info=True)
             raise
 
     # ----- Private conversion methods -----
     def _to_db_model(self, game: Game) -> GameModel:
-        # Convert Player -> str
+        """Convert domain Game entity into DB model."""
         board_as_str = [
             [cell.value if cell else None for cell in row]
             for row in game.board.grid
@@ -56,8 +61,8 @@ class GameRepositoryImpl(GameRepository):
         )
 
     def _from_db_model(self, db_game: GameModel) -> Game:
+        """Convert DB model into domain Game entity."""
         game = Game(db_game.game_id)
-        # Convert str -> Player
         game.board.grid = [
             [Player(cell) if cell else None for cell in row]
             for row in db_game.board
