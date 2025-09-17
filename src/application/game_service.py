@@ -1,6 +1,5 @@
 import uuid
 from typing import Optional
-from sqlalchemy.orm import Session
 
 from src.domain.entities.game import Game
 from src.domain.repositories.game_repository import GameRepository
@@ -12,17 +11,15 @@ from src.infrastructure.logging.logger import logger
 
 
 class GameService:
-    def __init__(self, repo: GameRepository, db_session: Session):
+    def __init__(self, repo: GameRepository):
         """Initialize GameService with a repository and DB session."""
         self.repo = repo
-        self.db: Session = db_session
 
     def create_game(self) -> str:
         """Create a new game, persist it, and return its unique ID."""
         game_id = str(uuid.uuid4()) # UUID to ensure unique game IDs
         game = Game(game_id)
         self.repo.add(game)
-        self.db.commit()
         logger.info(f"Game created successfully: {game_id}")
         return game_id
 
@@ -47,29 +44,29 @@ class GameService:
         if game.next_player is None or game.next_player != player:
             logger.warning(f"Player {player_id} tried to move out of turn in game {game_id}")
             return MoveResult(success=False, error="It's not your turn")
-
+        
         try:
             position = Position(x, y) 
             game.play_move(position)
-            self.repo.add(game)
-            self.db.commit()
-
-            # Determine message based on game state or next player
-            if game.is_finished:
-                if game.winner:
-                    logger.info(f"Game finished: {game_id}, winner={game.winner.value}")
-                    return MoveResult(success=True, message=f"Player {game.winner.value} has won!")
-                else:
-                    logger.info(f"Game finished as a draw: {game_id}")
-                    return MoveResult(success=True, message="The game is a draw")
-
-            logger.info(f"Move registered: game_id={game_id}, next_player={game.next_player.value}")
-            return MoveResult(success=True, message=f"Move registered, next player is {game.next_player.value}")
 
         except (InvalidMove, GameFinished) as e:
-            self.db.rollback() # Rollback in case of error
             logger.error(f"Error during move in game {game_id}: {str(e)}")
             return MoveResult(success=False, error=str(e))
+        
+        # Persist the updated game state
+        self.repo.add(game)
+
+        # Determine message based on game state or next player
+        if game.is_finished:
+            if game.winner:
+                logger.info(f"Game finished: {game_id}, winner={game.winner.value}")
+                return MoveResult(success=True, message=f"Player {game.winner.value} has won!")
+            else:
+                logger.info(f"Game finished as a draw: {game_id}")
+                return MoveResult(success=True, message="The game is a draw")
+
+        logger.info(f"Move registered: game_id={game_id}, next_player={game.next_player.value}")
+        return MoveResult(success=True, message=f"Move registered, next player is {game.next_player.value}")
 
     def get_status(self, game_id: str) -> Optional[GameStatus]:
         """Fetch the current status of the game, including board, next player, and winner."""

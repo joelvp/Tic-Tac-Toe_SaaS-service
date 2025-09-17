@@ -5,21 +5,16 @@ from src.application.game_service import GameService
 from src.domain.value_objects.player import Player
 from src.domain.entities.game import Game
 from src.domain.value_objects.position import Position
-from src.application.dtos import MoveResult, GameStatus
+from src.application.dtos import GameStatus
 
-
-@pytest.fixture
-def db_session():
-    return MagicMock(spec=Session)
 
 @pytest.fixture
 def repo():
     return MagicMock()
 
 @pytest.fixture
-def service(repo, db_session):
-    return GameService(repo, db_session)
-    return GameService(repo, db_session)
+def service(repo):
+    return GameService(repo)
 
 @pytest.fixture
 def game():
@@ -34,23 +29,20 @@ def mark_cell(game, x, y, player=Player.X):
     game.next_player = player
     game.play_move(Position(x, y))
 
-def test_create_game(service, repo, db_session):
+def test_create_game(service, repo):
     repo.add.return_value = None
-    db_session.commit.return_value = None
     game_id = service.create_game()
     assert isinstance(game_id, str)
     repo.add.assert_called()
-    db_session.commit.assert_called()
 
-def test_play_move_success(service, repo, game_x_turn, db_session):
+def test_play_move_success(service, repo, game_x_turn):
     repo.get.return_value = game_x_turn
     result = service.play_move("game123", "X", 1, 1)
     assert result.success is True
     assert "Move registered" in result.message or "has won" in result.message or "draw" in result.message
     repo.add.assert_called()
-    db_session.commit.assert_called()
 
-def test_play_move_winner_branch(service, repo, game_x_turn, db_session):
+def test_play_move_winner_branch(service, repo, game_x_turn):
     game = game_x_turn
 
     # Mock play_move to force a win
@@ -64,9 +56,8 @@ def test_play_move_winner_branch(service, repo, game_x_turn, db_session):
     result = service.play_move("game123", "X", 1, 1)
     assert result.success is True
     assert "has won" in result.message
-    db_session.commit.assert_called()
 
-def test_play_move_draw_branch(service, repo, game_x_turn, db_session):
+def test_play_move_draw_branch(service, repo, game_x_turn):
     game = game_x_turn
 
     # Simulate a move that ends in a draw
@@ -80,7 +71,6 @@ def test_play_move_draw_branch(service, repo, game_x_turn, db_session):
     result = service.play_move("game123", "X", 1, 1)
     assert result.success is True
     assert "draw" in result.message
-    db_session.commit.assert_called()
 
 def test_play_move_game_not_found(service, repo):
     repo.get.return_value = None
@@ -101,7 +91,7 @@ def test_play_move_out_of_turn(service, repo, game):
     assert result.success is False
     assert result.error == "It's not your turn"
 
-def test_play_move_invalid_move(service, repo, game, db_session):
+def test_play_move_invalid_move(service, repo, game):
     repo.get.return_value = game
     # Mark the cell first
     mark_cell(game, 1, 1)
@@ -109,7 +99,6 @@ def test_play_move_invalid_move(service, repo, game, db_session):
     result = service.play_move("game123", "O", 1, 1)
     assert result.success is False
     assert "already taken" in result.error or "Error" in result.error
-    db_session.rollback.assert_called()
 
 def test_get_status_success(service, repo, game):
     repo.get.return_value = game

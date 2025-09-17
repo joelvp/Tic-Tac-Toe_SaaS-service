@@ -11,4 +11,4 @@ def get_game_service(db: Session = Depends(get_db)) -> GameService:
     Injected into API routes via FastAPI Depends.
     """
     repo = GameRepositoryImpl(db)
-    return GameService(repo, db)
+    return GameService(repo)

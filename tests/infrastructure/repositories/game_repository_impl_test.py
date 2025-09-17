@@ -27,6 +27,7 @@ def test_add_merges_game(repo, db_session, game):
     repo.add(game)
     repo._to_db_model.assert_called_with(game)
     db_session.merge.assert_called_with("db_game")
+    db_session.commit.assert_called()
 
 def test_add_logs_and_raises_on_error(repo, game):
     repo._to_db_model = MagicMock(side_effect=Exception("fail"))
@@ -34,6 +35,8 @@ def test_add_logs_and_raises_on_error(repo, game):
         with pytest.raises(Exception):
             repo.add(game)
         logger_mock.error.assert_called()
+
+    assert not repo.db.commit.called
 
 def test_get_returns_none_if_not_found(repo):
     repo.db.query().filter().first.return_value = None

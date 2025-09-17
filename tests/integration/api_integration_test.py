@@ -35,8 +35,8 @@ def repo(db_session):
     return GameRepositoryImpl(db_session)
 
 @pytest.fixture
-def service(repo, db_session):
-    return GameService(repo, db_session)
+def service(repo):
+    return GameService(repo)
 
 @pytest.fixture
 def app(service):
