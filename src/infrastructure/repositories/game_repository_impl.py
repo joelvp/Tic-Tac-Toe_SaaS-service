@@ -21,6 +21,7 @@ class GameRepositoryImpl(GameRepository):
         try:
             db_game = self._to_db_model(game)
             self.db.merge(db_game)
+            self.db.commit()
             logger.info(f"Game {game.game_id} merged into database.")
         except Exception as e:
             logger.error(f"Failed to add/merge game {game.game_id}: {e}", exc_info=True)
